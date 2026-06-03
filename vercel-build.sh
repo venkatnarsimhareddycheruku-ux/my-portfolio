@@ -1,36 +1,32 @@
 #!/bin/bash
 set -e
 
-# Build the app
 echo "Building app..."
 bun run build
 
-# Prepare .vercel/output for prebuilt deployment
-echo "Preparing Vercel output..."
+echo "Preparing .vercel/output..."
 rm -rf .vercel/output
 mkdir -p .vercel/output/static
 mkdir -p .vercel/output/functions/__server.func
 
-# Copy static assets
-cp -r dist/client/* .vercel/output/static/
+# Static assets
+cp -r dist/client/. .vercel/output/static/
 
-# Copy server function
-cp -r dist/server/* .vercel/output/functions/__server.func/
+# Server function bundle
+cp -r dist/server/. .vercel/output/functions/__server.func/
 
-# Create Vercel routing config
-cat > .vercel/output/config.json << 'EOF'
+# Vercel function config (required, otherwise Vercel returns 404)
+cat > .vercel/output/functions/__server.func/.vc-config.json << 'EOF'
 {
-  "version": 3,
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/__server"
-    }
-  ]
+  "runtime": "nodejs22.x",
+  "handler": "index.mjs",
+  "launcherType": "Nodejs",
+  "shouldAddHelpers": false,
+  "supportsResponseStreaming": true
 }
 EOF
+
+# Top-level routing config
+cp dist/config.json .vercel/output/config.json
 
 echo "Vercel output ready in .vercel/output/"
